@@ -1,0 +1,39 @@
+{
+    "name": "home/cloudee",
+    "description": "Laravel api interface for nextcloud",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Felix Bohna",
+            "email": "bohna@home.digital"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": "^8.0",
+        "laravel/framework": "^9.0",
+        "laravel/passport": "^10.1",
+        "league/flysystem-webdav": "^3.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^7.0",
+        "phpunit/phpunit": "^9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Home\\Cloudee\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Home\\Cloudee\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Home\\Cloudee\\Providers\\CloudeeServiceProvider"
+            ]
+        }
+    }
+}
