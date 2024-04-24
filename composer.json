@@ -10,14 +10,14 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "php": "^8.0",
-        "laravel/framework": "^9.0",
-        "laravel/passport": "^10.1",
+        "php": "^8.2",
+        "laravel/framework": "^11.0",
+        "laravel/passport": "^12.0",
         "league/flysystem-webdav": "^3.0"
     },
     "require-dev": {
-        "orchestra/testbench": "^7.0",
-        "phpunit/phpunit": "^9.3"
+        "orchestra/testbench": "^9.0",
+        "phpunit/phpunit": "^11.0"
     },
     "autoload": {
         "psr-4": {
