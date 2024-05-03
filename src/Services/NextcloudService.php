@@ -3,6 +3,7 @@
 namespace Home\Cloudee\Services;
 
 use Home\Cloudee\Models\NextcloudUser;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\HttpClientException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
@@ -11,22 +12,17 @@ use Illuminate\Support\Str;
 
 class NextcloudService
 {
-    private string $params;
-
-    public function __construct()
-    {
-        $this->params = config('cloudee.nextcloud.params');
-    }
-
     /**
      * @param string $userid
      * @param string $groupid
      * @return Response
+     * @throws ConnectionException
      */
-    public function addUserToGroup(string $userid, string $groupid): Response
+    public static function addUserToGroup(string $userid, string $groupid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->post("ocs/v2.php/cloud/users/{$userid}/groups{$this->params}", [
+            ->post("ocs/v2.php/cloud/users/{$userid}/groups{$params}", [
                 'groupid' => $groupid
             ]);
     }
@@ -36,8 +32,10 @@ class NextcloudService
      * @param string $newUserid
      * @param string $password
      * @return void
+     * @throws ConnectionException
+     * @throws HttpClientException
      */
-    public function changeUserid(string $oldUserid, string $newUserid, string $password)
+    public static function changeUserid(string $oldUserid, string $newUserid, string $password)
     {
         #-- get old user
         $oldUser = (new NextcloudUser())->find($oldUserid);
@@ -47,35 +45,37 @@ class NextcloudService
             ->create($newUserid, $password, $oldUser->displayName, $oldUser->email, $oldUser->language);
 
         if (Arr::get($newUserResponse->json(), 'ocs.meta.status') !== 'ok') {
-            throwException(new HttpClientException($newUserResponse));
+            throw new HttpClientException($newUserResponse);
         }
 
         #-- get old user groups
-        $groupsResponse = $this->getUserGroups($oldUserid)->json();
+        $groupsResponse = self::getUserGroups($oldUserid)->json();
         $groups = Arr::get($groupsResponse, 'ocs.data.groups');
 
         #-- assign groups to new user
         if (!empty($groups)) {
             foreach ($groups as $group) {
-                $this->addUserToGroup($newUserid, $group);
+                self::addUserToGroup($newUserid, $group);
             }
         }
 
         #-- delete old user
-        $deleteResponse = $this->deleteUser($oldUserid);
+        $deleteResponse = self::deleteUser($oldUserid);
         if (Arr::get($deleteResponse->json(), 'ocs.meta.status') !== 'ok') {
-            throwException(new HttpClientException($deleteResponse));
+            throw new HttpClientException($deleteResponse);
         }
     }
 
     /**
      * @param string $groupid
      * @return Response
+     * @throws ConnectionException
      */
-    public function createGroup(string $groupid): Response
+    public static function createGroup(string $groupid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->post("ocs/v2.php/cloud/groups{$this->params}", [
+            ->post("ocs/v2.php/cloud/groups{$params}", [
                 'groupid' => $groupid
             ]);
     }
@@ -85,11 +85,13 @@ class NextcloudService
      *
      * @param NextcloudUser $user
      * @return Response
+     * @throws ConnectionException
      */
-    public function createUser(NextcloudUser $user): Response
+    public static function createUser(NextcloudUser $user): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->post("ocs/v2.php/cloud/users{$this->params}", $user->toArray());
+            ->post("ocs/v2.php/cloud/users{$params}", $user->toArray());
     }
 
     /**
@@ -97,11 +99,13 @@ class NextcloudService
      * @param int $shareType
      * @param string $shareWith
      * @return Response
+     * @throws ConnectionException
      */
-    public function createShare(string $path, int $shareType, string $shareWith): Response
+    public static function createShare(string $path, int $shareType, string $shareWith): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->post("ocs/v2.php/apps/files_sharing/api/v1/shares{$this->params}", [
+            ->post("ocs/v2.php/apps/files_sharing/api/v1/shares{$params}", [
                 'path' => $path,
                 'shareType' => $shareType,
                 'shareWith' => $shareWith,
@@ -111,42 +115,50 @@ class NextcloudService
     /**
      * @param string $groupid
      * @return Response
+     * @throws ConnectionException
      */
-    public function deleteGroup(string $groupid): Response
+    public static function deleteGroup(string $groupid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->delete("ocs/v2.php/cloud/groups/{$groupid}{$this->params}");
+            ->delete("ocs/v2.php/cloud/groups/{$groupid}{$params}");
     }
 
     /**
      * @param string $userid
      * @return Response
+     * @throws ConnectionException
      */
-    public function deleteUser(string $userid): Response
+    public static function deleteUser(string $userid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->delete("ocs/v2.php/cloud/users/{$userid}{$this->params}");
+            ->delete("ocs/v2.php/cloud/users/{$userid}{$params}");
     }
 
     /**
      * @param string $userid
      * @return Response
+     * @throws ConnectionException
      */
-    public function disableUser(string $userid): Response
+    public static function disableUser(string $userid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->put("ocs/v2.php/cloud/users/{$userid}/disable{$this->params}", []);
+            ->put("ocs/v2.php/cloud/users/{$userid}/disable{$params}", []);
     }
 
     /**
      * @param string $userid
      * @param string $groupid
      * @return Response
+     * @throws ConnectionException
      */
-    public function demoteUserFromSubAdmin(string $userid, string $groupid): Response
+    public static function demoteUserFromSubAdmin(string $userid, string $groupid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->delete("ocs/v2.php/cloud/users/{$userid}/subadmins{$this->params}", [
+            ->delete("ocs/v2.php/cloud/users/{$userid}/subadmins{$params}", [
                 'groupid' => $groupid
             ]);
     }
@@ -154,40 +166,48 @@ class NextcloudService
     /**
      * @param string $userid
      * @return Response
+     * @throws ConnectionException
      */
-    public function enableUser(string $userid): Response
+    public static function enableUser(string $userid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->put("ocs/v2.php/cloud/users/{$userid}/enable{$this->params}", []);
+            ->put("ocs/v2.php/cloud/users/{$userid}/enable{$params}", []);
     }
 
     /**
      * @param string $userid
      * @return Response
+     * @throws ConnectionException
      */
-    public function getUser(string $userid): Response
+    public static function getUser(string $userid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->get("ocs/v2.php/cloud/users/{$userid}{$this->params}");
+            ->get("ocs/v2.php/cloud/users/{$userid}{$params}");
     }
 
     /**
      * @param string $userid
      * @return Response
+     * @throws ConnectionException
      */
-    public function getUserGroups(string $userid): Response
+    public static function getUserGroups(string $userid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->get("ocs/v2.php/cloud/users/{$userid}/groups{$this->params}");
+            ->get("ocs/v2.php/cloud/users/{$userid}/groups{$params}");
     }
 
     /**
      * @return Response
+     * @throws ConnectionException
      */
-    public function getUserList(): Response
+    public static function getUserList(): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->get("ocs/v2.php/cloud/users{$this->params}");
+            ->get("ocs/v2.php/cloud/users{$params}");
     }
 
     /**
@@ -196,9 +216,11 @@ class NextcloudService
      *
      * @param NextcloudUser $user
      * @return array
+     * @throws ConnectionException
      */
-    public function updateUser(NextcloudUser $user): array
+    public static function updateUser(NextcloudUser $user): array
     {
+        $params = config('cloudee.nextcloud.params');
         $data = $user->toArray();
         $responses = [];
         #-- remove userid anf language from array
@@ -211,7 +233,7 @@ class NextcloudService
         #-- make a request for each value to change
         foreach ($data as $key=>$value){
             $responses[] = Http::nextcloud()
-                ->put("ocs/v2.php/cloud/users/{$user->userid}{$this->params}", [
+                ->put("ocs/v2.php/cloud/users/{$user->userid}{$params}", [
                     'key' => Str::lower($key),
                     'value' => $value,
                 ]);
@@ -224,11 +246,13 @@ class NextcloudService
      * @param string $userid
      * @param string $groupid
      * @return Response
+     * @throws ConnectionException
      */
-    public function promoteUserToSubAdmin(string $userid, string $groupid): Response
+    public static function promoteUserToSubAdmin(string $userid, string $groupid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->post("ocs/v2.php/cloud/users/{$userid}/subadmins{$this->params}", [
+            ->post("ocs/v2.php/cloud/users/{$userid}/subadmins{$params}", [
                 'groupid' => $groupid
             ]);
     }
@@ -237,11 +261,13 @@ class NextcloudService
      * @param string $userid
      * @param string $groupid
      * @return Response
+     * @throws ConnectionException
      */
-    public function removeUserFromGroup(string $userid, string $groupid): Response
+    public static function removeUserFromGroup(string $userid, string $groupid): Response
     {
+        $params = config('cloudee.nextcloud.params');
         return Http::nextcloud()
-            ->delete("ocs/v2.php/cloud/users/{$userid}/groups{$this->params}", [
+            ->delete("ocs/v2.php/cloud/users/{$userid}/groups{$params}", [
                 'groupid' => $groupid
             ]);
     }

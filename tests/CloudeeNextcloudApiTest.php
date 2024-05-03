@@ -14,7 +14,6 @@ class CloudeeNextcloudApiTest extends TestCase
 {
     use CreatesApplication;
 
-    private NextcloudService $nextcloudService;
     private WebdavService $webdavService;
     private array $userArr = [];
     private NextcloudUser $user;
@@ -24,7 +23,6 @@ class CloudeeNextcloudApiTest extends TestCase
     {
         parent::setUp();
 
-        $this->nextcloudService = new NextcloudService();
         $this->webdavService = new WebdavService();
         $this->userArr = [
             'userid' => 'unittest',
@@ -48,7 +46,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_gets_a_nextcloud_user()
     {
-        $response = $this->nextcloudService->getUser($this->userArr['userid'])->json();
+        $response = NextcloudService::getUser($this->userArr['userid'])->json();
 
         $this->assertEquals($this->userArr['userid'], Arr::get($response, 'ocs.data.id'));
     }
@@ -59,9 +57,9 @@ class CloudeeNextcloudApiTest extends TestCase
         $newEmail = 'test@home.digital';
         $this->user->fromArray($this->userArr);
         $this->user->email = $newEmail;
-        $this->nextcloudService->updateUser($this->user);
+        NextcloudService::updateUser($this->user);
 
-        $response = $this->nextcloudService->getUser($this->user->userid);
+        $response = NextcloudService::getUser($this->user->userid);
 
         $this->assertEquals($newEmail, Arr::get($response, 'ocs.data.email'));
     }
@@ -69,7 +67,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_creates_a_nextcloud_group()
     {
-        $response = $this->nextcloudService->createGroup($this->groupid)->json();
+        $response = NextcloudService::createGroup($this->groupid)->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
@@ -77,7 +75,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_adds_a_user_to_a_group()
     {
-        $response = $this->nextcloudService->addUserToGroup($this->userArr['userid'], $this->groupid)->json();
+        $response = NextcloudService::addUserToGroup($this->userArr['userid'], $this->groupid)->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
@@ -85,7 +83,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_promotes_a_user_to_sub_admin()
     {
-        $response = $this->nextcloudService->promoteUserToSubAdmin($this->userArr['userid'], $this->groupid)->json();
+        $response = NextcloudService::promoteUserToSubAdmin($this->userArr['userid'], $this->groupid)->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
@@ -93,7 +91,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_demotes_a_user_from_sub_admin()
     {
-        $response = $this->nextcloudService->demoteUserFromSubAdmin($this->userArr['userid'], $this->groupid)->json();
+        $response = NextcloudService::demoteUserFromSubAdmin($this->userArr['userid'], $this->groupid)->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
@@ -101,7 +99,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_removes_a_user_from_a_group()
     {
-        $response = $this->nextcloudService->removeUserFromGroup($this->userArr['userid'], $this->groupid)->json();
+        $response = NextcloudService::removeUserFromGroup($this->userArr['userid'], $this->groupid)->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
@@ -109,7 +107,7 @@ class CloudeeNextcloudApiTest extends TestCase
     /** @test */
     function it_deletes_a_nextcloud_group()
     {
-        $response = $this->nextcloudService->deleteGroup($this->groupid)->json();
+        $response = NextcloudService::deleteGroup($this->groupid)->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
@@ -121,9 +119,9 @@ class CloudeeNextcloudApiTest extends TestCase
         $path = 'unit';
 
         #-- create group, folder and share
-        $this->nextcloudService->createGroup($groupid);
+        NextcloudService::createGroup($groupid);
         $this->webdavService->createFolder("{$path}/{$groupid}");
-        $response = $this->nextcloudService->createShare("{$path}/{$groupid}", 1, $groupid);
+        $response = NextcloudService::createShare("{$path}/{$groupid}", 1, $groupid);
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
 
@@ -131,14 +129,14 @@ class CloudeeNextcloudApiTest extends TestCase
         $this->webdavService->deleteFolder($path);
         $this->assertFalse($this->webdavService->folderExists($path));
 
-        $response = $this->nextcloudService->deleteGroup($groupid)->json();
+        $response = NextcloudService::deleteGroup($groupid)->json();
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }
 
     /** @test */
     function it_deletes_a_nextcloud_user()
     {
-        $response = $this->nextcloudService->deleteUser($this->userArr['userid'])->json();
+        $response = NextcloudService::deleteUser($this->userArr['userid'])->json();
 
         $this->assertEquals('ok', Arr::get($response, 'ocs.meta.status'));
     }

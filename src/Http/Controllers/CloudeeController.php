@@ -7,6 +7,7 @@ use Home\Cloudee\Services\NextcloudService;
 use Home\Cloudee\Services\WebdavService;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -19,12 +20,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CloudeeController extends Controller
 {
-    private NextcloudService $nextcloudService;
     private WebdavService $webdavService;
 
     public function __construct()
     {
-        $this->nextcloudService = new NextcloudService();
         $this->webdavService = new WebdavService();
     }
 
@@ -43,16 +42,16 @@ class CloudeeController extends Controller
     /**
      * @param Request $request
      * @return Application|ResponseFactory|Response
-     * @throws FilesystemException
+     * @throws ConnectionException
      */
     public function createShareWithGroup(Request $request): Application|ResponseFactory|Response
     {
         $groupid = $request->get('groupId');
         $path = $request->get('path');
 
-        $this->nextcloudService->createGroup($groupid);
+        NextcloudService::createGroup($groupid);
         $this->webdavService->createFolder("{$path}/{$groupid}");
-        $this->nextcloudService->createShare("{$path}/{$groupid}", 1, $groupid);
+        NextcloudService::createShare("{$path}/{$groupid}", 1, $groupid);
 
         return \response();
     }
@@ -60,10 +59,11 @@ class CloudeeController extends Controller
     /**
      * @param Request $request
      * @return Application|Response|ResponseFactory
+     * @throws ConnectionException
      */
     public function getUser(Request $request): Response|Application|ResponseFactory
     {
-        $response = $this->nextcloudService->getUser($request->userid);
+        $response = NextcloudService::getUser($request->userid);
 
         return \response($response->json());
     }
@@ -71,10 +71,11 @@ class CloudeeController extends Controller
     /**
      * @param Request $request
      * @return Application|ResponseFactory|Response
+     * @throws ConnectionException
      */
     public function deleteGroup(Request $request): Application|ResponseFactory|Response
     {
-        $response = $this->nextcloudService->deleteGroup($request->groupid);
+        $response = NextcloudService::deleteGroup($request->groupid);
 
         return \response($response->json());
     }
@@ -82,17 +83,23 @@ class CloudeeController extends Controller
     /**
      * @param Request $request
      * @return Application|ResponseFactory|Response
+     * @throws ConnectionException
      */
     public function deleteUser(Request $request): Response|Application|ResponseFactory
     {
-        $response = $this->nextcloudService->deleteUser($request->userid);
+        $response = NextcloudService::deleteUser($request->userid);
 
         return \response($response->json());
     }
 
+    /**
+     * @param Request $request
+     * @return Application|ResponseFactory|\Illuminate\Foundation\Application|Response
+     * @throws ConnectionException
+     */
     public function demoteUserFromSubAdmin(Request $request)
     {
-        $response = $this->nextcloudService->demoteUserFromSubAdmin($request->userid, $request->groupid);
+        $response = NextcloudService::demoteUserFromSubAdmin($request->userid, $request->groupid);
 
         return \response($response->json());
     }
@@ -101,6 +108,7 @@ class CloudeeController extends Controller
      * @param Request $request
      * @return Application|ResponseFactory|Response
      * @throws ValidationException
+     * @throws ConnectionException
      */
     public function updateUser(Request $request): Response|Application|ResponseFactory
     {
@@ -119,7 +127,7 @@ class CloudeeController extends Controller
         $user = new NextcloudUser();
         $user->fromArray($data);
 
-        $responses = $this->nextcloudService->updateUser($user);
+        $responses = NextcloudService::updateUser($user);
         $json = [];
         if(!empty($responses)){
             foreach ($responses as $response) {
@@ -153,15 +161,21 @@ class CloudeeController extends Controller
     /**
      * @param Request $request
      * @return Application|ResponseFactory|Response
+     * @throws FilesystemException
      */
     public function getFolderContent(Request $request): Application|ResponseFactory|Response
     {
-        return \response($this->webdavService->getFolderContent($request->dir, true));
+        return \response($this->webdavService->getFolderContent($request->dir));
     }
 
+    /**
+     * @param Request $request
+     * @return Application|ResponseFactory|\Illuminate\Foundation\Application|Response
+     * @throws ConnectionException
+     */
     public function promoteUserToSubAdmin(Request $request)
     {
-        $response = $this->nextcloudService->promoteUserToSubAdmin($request->userid, $request->groupid);
+        $response = NextcloudService::promoteUserToSubAdmin($request->userid, $request->groupid);
 
         return \response($response->json());
     }
@@ -169,10 +183,11 @@ class CloudeeController extends Controller
     /**
      * @param Request $request
      * @return Application|ResponseFactory|Response
+     * @throws ConnectionException
      */
     public function removeUserFromGroup(Request $request): Application|ResponseFactory|Response
     {
-        $response = $this->nextcloudService->removeUserFromGroup($request->userid, $request->groupid);
+        $response = NextcloudService::removeUserFromGroup($request->userid, $request->groupid);
 
         return \response($response->json());
     }
